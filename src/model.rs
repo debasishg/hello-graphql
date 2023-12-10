@@ -33,53 +33,43 @@ impl GraphQLQuery {
     }
 }
 
-fn generate_sql_query(table: Table) -> String {
-    let mut sql_query = String::from("SELECT ");
-    for field in table.fields {
-        sql_query.push_str(&field);
-        sql_query.push_str(", ");
-    }
-    sql_query.pop();
-    sql_query.pop();
-    sql_query.push_str(" FROM ");
-    sql_query.push_str(&table.name);
-    sql_query.push_str(";");
-    sql_query
+fn generate_sql_qry(table: Table) -> String {
+    let fields = 
+        table
+            .fields
+            .iter()
+            .map(|field| field.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+
+    let str = format!("SELECT {} FROM {};", fields, table.name);
+    str
 }
 
-// generate a sql select statement for GraphQLQuery assuming the next table in the vector is a join
-fn generate_sql_join_query(query: GraphQLQuery) -> String {
-    let mut sql_query = String::from("SELECT ");
-    let mut table = query.tables[0].name.clone();
-    let all_columns = query.tables[0].fields.clone().into_iter().chain(query.tables[1].fields.clone());
-    for column in all_columns {
-        sql_query.push_str(&column);
-        sql_query.push_str(", ");
-    }
-    sql_query.pop();
-    sql_query.pop();
-    sql_query.push_str(" FROM ");
-    sql_query.push_str(&table);
-    sql_query.push_str(" JOIN ");
-    table = query.tables[1].name.clone();
-    sql_query.push_str(&table);
-    sql_query.push_str(" ON ");
-    sql_query.push_str(&query.tables[0].name);
-    sql_query.push_str(".");
-    sql_query.push_str(&query.tables[0].fields[0]);
-    sql_query.push_str(" = ");
-    sql_query.push_str(&query.tables[1].name);
-    sql_query.push_str(".");
-    sql_query.push_str(&query.tables[1].fields[0]);
-    sql_query.push_str(";");
-    sql_query
+fn generate_sql_join_qry(query: GraphQLQuery) -> String {
+    let all_columns = 
+        query
+            .tables[0]
+            .fields
+            .clone() // need this clone as into_iter() takes ownership of receiver
+            .into_iter()
+            .chain(query.tables[1].fields.clone());
+
+    let all_columns_str = 
+        all_columns
+            .map(|field| field.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+
+    let str = format!("SELECT {} FROM {} JOIN {} ON {}.{} = {}.{};", all_columns_str, query.tables[0].name, query.tables[1].name, query.tables[0].name, query.tables[0].fields[0], query.tables[1].name, query.tables[1].fields[0]);
+    str
 }
 
 pub fn generate_query(query: GraphQLQuery) -> String {
     if query.tables.len() == 1 {
-        generate_sql_query(query.tables[0].clone())
+        generate_sql_qry(query.tables[0].clone())
     } else {
-        generate_sql_join_query(query)
+        generate_sql_join_qry(query)
     }
 }
 
