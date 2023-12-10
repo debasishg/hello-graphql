@@ -1,3 +1,5 @@
+use inflector::Inflector;
+
 #[derive(Debug, Clone)]
 pub struct Table {
     name: String,
@@ -31,6 +33,19 @@ impl GraphQLQuery {
     pub fn add_table (&mut self, table: Table) {
         self.tables.push(table);
     }
+
+    pub fn get_join_columns(&self) -> Option<String> {
+        let pkey = self.tables[0].fields.iter().position(|field| field.to_string() == "id");
+        match pkey {
+            Some(_pkey) => {
+                let table_name_singularized = self.tables[0].name.to_string().to_lowercase().to_singular();
+                let foreign_key = format!("{}_id", table_name_singularized);
+                let join_condition = format!("{}.{} = {}.{}", self.tables[0].name, "id", self.tables[1].name, foreign_key);
+                Some(join_condition)
+            }
+            None => None
+        }
+    }
 }
 
 fn generate_sql_qry(table: Table) -> String {
@@ -61,7 +76,13 @@ fn generate_sql_join_qry(query: GraphQLQuery) -> String {
             .collect::<Vec<_>>()
             .join(",");
 
-    let str = format!("SELECT {} FROM {} JOIN {} ON {}.{} = {}.{};", all_columns_str, query.tables[0].name, query.tables[1].name, query.tables[0].name, query.tables[0].fields[0], query.tables[1].name, query.tables[1].fields[0]);
+    let join_condition = query.get_join_columns().unwrap();
+
+    let str = format!("SELECT {} FROM {} JOIN {} ON {};", 
+        all_columns_str, 
+        query.tables[0].name, 
+        query.tables[1].name, 
+        join_condition);
     str
 }
 
