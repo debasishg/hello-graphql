@@ -1,0 +1,9 @@
+graphql           =  { "query" ~ WS ~ "{" ~ WS ~ table_description ~ EOI }
+table_description =  { table_field_list ~ (table_end ~ WS)+ }
+table_field_list  =  { table ~ WS ~ ((table | field) ~ WS)+ }
+field             =  { identifier }
+table             =  { identifier ~ WS ~ table_begin }
+identifier        = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+table_begin       =  { "{" }
+table_end         =  { "}" }
+WS                = _{ (" " | "\t" | "\n" | "\r\n")+ }
