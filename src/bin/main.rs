@@ -1,7 +1,11 @@
 use pest::Parser;
 use pest_derive::Parser;
 use std::fs;
-use hello_graphql::model::{Table, GraphQLQuery, generate_query, strip_after_space};
+use std::str::FromStr;
+
+use hello_graphql::model::{Table, GraphQLQuery};
+use hello_graphql::util::{strip_after_space, DbUrl};
+use hello_graphql::sql::new_sql_generator;
 
 #[derive(Parser)]
 #[grammar = "graphqlquery.pest"]
@@ -54,5 +58,20 @@ fn main() {
         }
 
     }
-    println!("query {:?}", generate_query(graphql_query));
+    // generate sql
+    match DbUrl::from_str("postgresql://localhost:5432") {
+        Ok(db_url) => {
+            match new_sql_generator(&db_url) {
+                Ok(sql_generator) => {
+                    println!("sql {:?}", sql_generator.generate_sql(graphql_query));
+                }
+                Err(err) => {
+                    println!("error generating sql {:?}", err);
+                }
+            }
+        }
+        Err(err) => {
+            println!("error forming db url {:?}", err);
+        }
+    }
 }

@@ -43,6 +43,14 @@ impl Table {
         &self.name
     }
 
+    pub fn all_fields(&self) -> String {
+        self.fields
+            .iter()
+            .map(|field| field.to_string())
+            .collect::<Vec<_>>()
+            .join(",")
+        }
+
     /// checks if the field exists in the table
     pub fn check_field_exists(&self, field: &str) -> bool {
         self.fields.iter().any(|f| f == field)
@@ -63,8 +71,30 @@ impl GraphQLQuery {
         }
     }
 
+    pub fn tables(&self) -> &Vec<Table> {
+        &self.tables
+    }
+
+    pub fn is_single_table_query(&self) -> bool {
+        self.tables.len() == 1
+    }
+
+    pub fn head_table(&self) -> &Table {
+        &self.tables[0]
+    }
+
     pub fn add_table (&mut self, table: Table) {
         self.tables.push(table);
+    }
+
+    pub fn all_columns(&self) -> Vec<String> {
+        let mut all_columns = Vec::new();
+        for table in &self.tables {
+            for field in &table.fields {
+                all_columns.push(field.to_string());
+            }
+        }
+        all_columns
     }
 
     pub fn get_join_columns(&self) -> Option<String> {
@@ -79,62 +109,4 @@ impl GraphQLQuery {
             None => None
         }
     }
-}
-
-/// generate a sql query for a single table
-fn generate_sql_qry(table: Table) -> String {
-    let fields = 
-        table
-            .fields
-            .iter()
-            .map(|field| field.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
-
-    let str = format!("SELECT {} FROM {};", fields, table.name);
-    str
-}
-
-/// generate a sql query for a join
-fn generate_sql_join_qry(query: GraphQLQuery) -> String {
-    let all_columns = 
-        query
-            .tables[0]
-            .fields
-            .iter()
-            .chain(query.tables[1].fields.iter());
-
-    let all_columns_str = 
-        all_columns
-            .map(|field| field.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
-
-    let join_condition = query.get_join_columns().unwrap();
-
-    let str = format!("SELECT {} FROM {} JOIN {} ON {};", 
-        all_columns_str, 
-        query.tables[0].name, 
-        query.tables[1].name, 
-        join_condition);
-    str
-}
-
-/// generate a sql query for a single table or a join
-pub fn generate_query(query: GraphQLQuery) -> String {
-    if query.tables.len() == 1 {
-        generate_sql_qry(query.tables[0].clone())
-    } else {
-        generate_sql_join_qry(query)
-    }
-}
-
-pub fn strip_after_space(input: &str) -> String {
-  if let Some(index) = input.find(' ') {
-      let stripped = &input[..index];
-      String::from(stripped)
-  } else {
-      // If there is no space, return the original string
-      String::from(input)
-  }
 }
