@@ -101,9 +101,8 @@ fn generate_sql_join_qry(query: GraphQLQuery) -> String {
         query
             .tables[0]
             .fields
-            .clone() // need this clone as into_iter() takes ownership of receiver
-            .into_iter()
-            .chain(query.tables[1].fields.clone());
+            .iter()
+            .chain(query.tables[1].fields.iter());
 
     let all_columns_str = 
         all_columns
